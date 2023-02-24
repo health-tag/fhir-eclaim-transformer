@@ -1,13 +1,8 @@
 import argparse
-import os
 import sys
-import time
-import uuid
-import zipfile
-from datetime import datetime
 from pathlib import Path
 
-from utilities.work_folder import check_job_folder
+from utilities.work_folder import check_job_folder, watch_folder
 
 
 def banner():
@@ -22,8 +17,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='HealthTAG FHIR Transformer')
     parser.add_argument('--watch', dest='watch_mode', action='store_true',
                         help='Use watch mode. Please read the manual to understand how to use this mode')
-    parser.add_argument('--name', dest='folder_name', action='store',
-                        help='Specify name of folder inside "workingdir" folder')
+    parser.add_argument('--path', dest='path', action='store',
+                        help='Specify path of folder', required=False)
     args = parser.parse_args()
 
     if (args.watch_mode is True):
@@ -33,7 +28,7 @@ if __name__ == '__main__':
         sys.exit(watch_folder(path))
 
     if (args.folder_name is None):
-        print("Please specify --type and --name argument")
+        print('Please use --path "path to folder" or use --watch argument to watch folder in workingdir')
         sys.exit(1)
     else:
-        sys.exit(run_csop_folder(Path(f"workingdir/{args.folder_name}")))
+        check_job_folder(Path(args.path))

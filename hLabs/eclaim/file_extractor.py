@@ -1,24 +1,20 @@
-import encodings
-import xmltodict
-import sys
-import re
 import pandas as pd
 import numpy as np
 import json
-from dbfread import DBF
-from fhir_transformer.eclaim.files.hlab.E_1Ins import open_ins_csv, open_ins_dbf
-from fhir_transformer.eclaim.files.hlab.E_2Pat import open_pat_csv, open_pat_dbf
-from fhir_transformer.eclaim.files.hlab.E_7Ipd import open_ipd_csv, open_ipd_dbf
-from fhir_transformer.eclaim.files.hlab.E_8Irf import open_irf_csv, open_irf_dbf
-from fhir_transformer.eclaim.files.hlab.E_9Idx import open_idx_csv, open_idx_dbf
-from fhir_transformer.eclaim.files.hlab.E_10Iop import open_iop_csv, open_iop_dbf
-from fhir_transformer.eclaim.files.hlab.E_11Cht import open_cht_csv, open_cht_dbf
-from fhir_transformer.eclaim.files.hlab.E_12Cha import open_cha_csv, open_cha_dbf
-from fhir_transformer.eclaim.files.hlab.E_13Aer import open_aer_csv, open_aer_dbf
-from fhir_transformer.eclaim.files.hlab.E_14Adp import open_adp_csv, open_adp_dbf
-from fhir_transformer.eclaim.files.hlab.E_15Lvd import open_lvd_csv, open_lvd_dbf
-from fhir_transformer.eclaim.files.hlab.E_16Dru import open_dru_csv, open_dru_dbf
-from fhir_transformer.eclaim.files.hlab.E_17Labfu import open_labfu_csv, open_labfu_dbf
+
+from hLabs.eclaim.files.hlab.E_1Ins import open_ins_csv, open_ins_dbf
+from hLabs.eclaim.files.hlab.E_2Pat import open_pat_csv, open_pat_dbf
+from hLabs.eclaim.files.hlab.E_7Ipd import open_ipd_csv, open_ipd_dbf
+from hLabs.eclaim.files.hlab.E_8Irf import open_irf_csv, open_irf_dbf
+from hLabs.eclaim.files.hlab.E_9Idx import open_idx_csv, open_idx_dbf
+from hLabs.eclaim.files.hlab.E_10Iop import open_iop_csv, open_iop_dbf
+from hLabs.eclaim.files.hlab.E_11Cht import open_cht_csv, open_cht_dbf
+from hLabs.eclaim.files.hlab.E_12Cha import open_cha_csv, open_cha_dbf
+from hLabs.eclaim.files.hlab.E_13Aer import open_aer_csv, open_aer_dbf
+from hLabs.eclaim.files.hlab.E_14Adp import open_adp_csv, open_adp_dbf
+from hLabs.eclaim.files.hlab.E_15Lvd import open_lvd_csv, open_lvd_dbf
+from hLabs.eclaim.files.hlab.E_16Dru import open_dru_csv, open_dru_dbf
+from hLabs.eclaim.files.hlab.E_17Labfu import open_labfu_csv, open_labfu_dbf
 
 
 

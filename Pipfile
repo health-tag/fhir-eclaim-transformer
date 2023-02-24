@@ -6,12 +6,15 @@ name = "pypi"
 [packages]
 pandas = "*"
 "fhir.resources" = "*"
-dbf = "*"
 jsonpickle = "*"
 watchdog = "*"
+xmltodict = "*"
+dbfread = "*"
+requests = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.11"
-python_full_version = "3.11.1"
+python_full_version = "3.11.2"

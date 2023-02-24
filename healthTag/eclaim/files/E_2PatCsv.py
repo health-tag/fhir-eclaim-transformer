@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from os import PathLike
+from pathlib import Path
 
 import pandas as pd
+from dbfread import DBF
 
 
 @dataclass
@@ -20,9 +22,17 @@ class PatCsvRow:
 hcode|hn       |changwat|amphur|dob     |sex|marriage|occupa|nation|person_id    |namepat                          |title|fname       |lname           |idtype
 11218|651218347|60      |11    |19580101|1  |2       |505   |099   |1842228343492|ตัวอย่างชื่อ-6138 ตัวอย่างนามสกุล-4970,นาย|นาย  |ตัวอย่างชื่อ-6138|ตัวอย่างนามสกุล-4970|1
 """
-def open_pat_csv(file_path: PathLike) -> list[PatCsvRow]:
-    df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
+def open_pat_file(file_path: PathLike) -> list[PatCsvRow]:
+    match Path(file_path).suffix:
+        case ".dbf":
+            dbf = DBF(file_path)
+            df = pd.DataFrame(iter(dbf))
+        case ".txt":
+            df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
+
     df.columns = df.columns.str.lower()
+    df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
     items = list[PatCsvRow]()
     for i, row in df.iterrows():
         items.append(PatCsvRow(hospital_code=row["hcode"],

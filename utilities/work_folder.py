@@ -1,28 +1,42 @@
-import os
-import uuid
-import zipfile
-from datetime import datetime
+from dataclasses import dataclass
 from pathlib import Path, PurePath
+from typing import Optional
 
-import jsonpickle
-from watchdog.events import FileSystemEventHandler, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED
+from watchdog.events import FileSystemEventHandler, EVENT_TYPE_DELETED
 from watchdog.observers.polling import PollingObserver
 
 import time
+
+from utilities.elcaim import process_eclaim_folder
+
+
+@dataclass
+class CheckFilesResult:
+    type: str
+    folder_path: Path
+    files: dict[str, Optional[Path]]
 
 
 def checkfiles_in_folder(folder_path: Path):
     print(f"-> {folder_path}")
 
-    elaims_checklist = dict[str, bool]()
-    elaims_checklist["ins"] = False
-    elaims_checklist["pat"] = False
-    elaims_checklist["opd"] = False
-    elaims_checklist["orf"] = False
-    elaims_checklist["odx"] = False
-    elaims_checklist["oop"] = False
-    elaims_checklist["cht"] = False
-    elaims_checklist["dru"] = False
+    elaims_checklist = dict[str, Optional[Path]]()
+    elaims_checklist["ins"] = None  # 1 HealthTAG
+    elaims_checklist["pat"] = None  # 2 HealthTAG
+    elaims_checklist["opd"] = None  # 3 HealthTAG
+    elaims_checklist["orf"] = None  # 4 HealthTAG
+    elaims_checklist["odx"] = None  # 5 HealthTAG
+    elaims_checklist["oop"] = None  # 6 HealthTAG
+    elaims_checklist["ipd"] = None  # 7 H-LAB
+    elaims_checklist["irf"] = None  # 8 H-LAB
+    elaims_checklist["idx"] = None  # 9 H-LAB
+    elaims_checklist["iop"] = None  # 10 H-LAB
+    elaims_checklist["cht"] = None  # 11 HealthTAG
+    elaims_checklist["cha"] = None  # 12 HealthTAG
+    elaims_checklist["cha"] = None  # 12 HealthTAG
+    elaims_checklist["aer"] = None  # 13 H-LAB
+    elaims_checklist["adp"] = None  # 14 H-LAB
+    elaims_checklist["dru"] = None  # 16 HealthTAG
 
     files = Path(folder_path).glob("*")
     is_done = False
@@ -37,14 +51,34 @@ def checkfiles_in_folder(folder_path: Path):
 
         for key, value in iter(elaims_checklist.items()):
             if key in file.name.lower():
-                elaims_checklist[key] = True
+                elaims_checklist[key] = file
 
-    is_eclaims = all(elaims_checklist.values()) and not is_done
+    is_eclaims = all([x is not None for x in elaims_checklist.values()]) and not is_done
     if is_eclaims:
         print(f"{folder_path} will be processed as E-Claims Folders.")
-        return "eclaims"
+        return CheckFilesResult("eclaims", folder_path, elaims_checklist)
     else:
         return None
+
+
+def check_job_folder(folder_path: Path, iteration=0):
+    sub_paths = list(filter(lambda sp: sp.is_dir, list(folder_path.glob("**"))))
+    if len(sub_paths) == 0:
+        return
+    else:
+        if iteration == 0:
+            print(f"Checking on {folder_path} folder for any existing work")
+        for sub_path in sub_paths:
+            if sub_path.is_dir():
+                result = checkfiles_in_folder(sub_path)
+                if result is not None:
+                    match result.type:
+                        case "eclaims":
+                            run_eclaim_folder(result)
+        if iteration == 0:
+            check_job_folder(folder_path, iteration=1)
+        if iteration == 1:
+            print("Finish running current works")
 
 
 def findWorkingFolder(path: PurePath, iteration=0):
@@ -76,7 +110,7 @@ class Handler(FileSystemEventHandler):
             match result:
                 case "eclaims":
                     Handler.pendingJob[job_folder_path.name] = True
-                    run_eclaims_folder(job_folder_path)
+                    run_eclaim_folder(result)
                     Handler.pendingJob[job_folder_path.name] = False
 
 
@@ -96,77 +130,6 @@ class WorkingDirWatcher:
         self.observer.stop()
         self.observer.join()
 
-def run_eclaims_folder(folder_path: Path):
-    print(f"Converting Eclaim Files in {folder_path.absolute()}")
-    files = list(folder_path.glob("*"))
-    if len(files) == 0:
-        print(f"No file found!")
-    else:
-        print(f"{len(files)} file found")
-        for file in files:
-            print(file)
-    _1ins_path: Path | None = None # HealthTAG
-    _2pat_path: Path | None = None # HealthTAG
-    _3opd_path: Path | None = None # HealthTAG
-    _4orf_path: Path | None = None # HealthTAG
-    _5odx_path: Path | None = None # HealthTAG
-    _6oop_path: Path | None = None # HealthTAG
-    _7ipd_path: Path | None = None # H-LAB
-    _8irf_path: Path | None = None # H-LAB
-    _9idx_path: Path | None = None # H-LAB
-    _10iop_path: Path | None = None # H-LAB
-    _11cht_path: Path | None = None # HealthTAG
-    _12cha_path: Path | None = None # HealthTAG
-    _13aer_path: Path | None = None # H-LAB
-    _14adp_path: Path | None = None # H-LAB
-    _16dru_path: Path | None = None # HealthTAG
-    #_17lab_fu_path: Path | None = None # H-LAB
-    for file in files:
-        if "ins" in file.name.lower():
-            _1ins_path = file
-        if "pat" in file.name.lower():
-            _2pat_path = file
-        if "opd" in file.name.lower():
-            _3opd_path = file
-        if "orf" in file.name.lower():
-            _4orf_path = file
-        if "odx" in file.name.lower():
-            _5odx_path = file
-        if "oop" in file.name.lower():
-            _6oop_path = file
-        if "ipd" in file.name.lower():
-            _7ipd_path = file
-        if "irf" in file.name.lower():
-            _8irf_path = file
-        if "idx" in file.name.lower():
-            _9idx_path = file
-        if "iop" in file.name.lower():
-            _10iop_path = file
-        if "cht" in file.name.lower():
-            _11cht_path = file
-        if "cha" in file.name.lower():
-            _12cha_path = file
-        if "aer" in file.name.lower():
-            _13aer_path = file
-        if "adp" in file.name.lower():
-            _14adp_path = file
-        if "dru" in file.name.lower():
-            _16dru_path = file
-
-    if _1ins_path is None or _2pat_path is None or _3opd_path is None \
-            or _4orf_path is None or _5odx_path is None or _6oop_path is None \
-            or _7ipd_path is None or _8irf_path is None or _9idx_path is None \
-            or _10iop_path is None or _11cht_path is None or _12cha_path is None \
-            or _13aer_path is None or _14adp_path is None or _16dru_path is None:
-        print("Required files not found!")
-        return
-    print(
-        f"Processing {_1ins_path.name} {_2pat_path.name} {_3opd_path.name} {_4orf_path.name} {_5odx_path.name} {_6oop_path.name} {_11cht_path.name} {_16dru_path.name}")
-    eclaims_process(results, _1ins_path=str(_1ins_path), _2pat_path=str(_2pat_path), _3opd_path=str(_3opd_path),
-                    _4orf_path=str(_4orf_path), _5odx_path=str(_5odx_path), _6oop_path=str(_6oop_path),
-                    _11cht_path=str(_11cht_path), _16dru_path=str(_16dru_path))
-    return
-
 
 def watch_folder(folder_path: Path):
     watcher = WorkingDirWatcher(folder_path)
@@ -179,20 +142,17 @@ def watch_folder(folder_path: Path):
         print(f'Stop watching {folder_path} folder')
 
 
-def check_job_folder(folder_path: Path, iteration=0):
-    sub_paths = list(filter(lambda sp: sp.is_dir, list(folder_path.glob("**"))))
-    if len(sub_paths) == 0:
+def run_eclaim_folder(result: CheckFilesResult):
+    if result is None:
+        print("No file found!")
         return
-    else:
-        if iteration == 0:
-            print(f"Checking on {folder_path} folder for any existing work")
-        for sub_path in sub_paths:
-            if sub_path.is_dir():
-                result = checkfiles_in_folder(sub_path)
-                match result:
-                    case "eclaims":
-                        run_eclaims_folder(sub_path)
-        if iteration == 0:
-            check_job_folder(folder_path, iteration=1)
-        if iteration == 1:
-            print("Finish running current works")
+    all_files_available = True
+    for key, path in result.files.items():
+        if path is None:
+            print(f"Required {key} file not found!")
+            all_files_available = False
+    if not all_files_available:
+        return
+    print(f"Processing eclaims folder at {result.folder_path.absolute()}")
+    process_eclaim_folder(result.files)
+    return

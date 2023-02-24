@@ -5,26 +5,21 @@ from math import ceil
 from typing import Iterable
 import re
 
-import jsonpickle
 import requests
 from fhir.resources.fhirresourcemodel import FHIRResourceModel
 from fhir.resources.fhirtypes import Code, BundleEntryType
-from fhir.resources import FHIRAbstractModel
 from fhir.resources.bundle import Bundle
 
-from fhir_transformer.fhir_transformer_config import max_patient_per_cycle
+from configurations.fhir_server import max_patient_per_cycle, headers
 
-from fhir_transformer.fhir_transformer_config import base_fhir_url
-from fhir_transformer.models.result import BundleResult, EntryResult
+from configurations.fhir_server import base_fhir_url
+from healthTag.models.result import BundleResult, EntryResult
 
 actual_header = {
     "Content-Type": "application/json"
 }
 
-
-def send_singletype_bundle(fhir_resources: Iterable[FHIRResourceModel], processed_results: list[BundleResult]):
-    resource_name = next(iter(fhir_resources)).resource_type
-    print(f"⌚ Convert {resource_name} to FHIR Bundle entries at {datetime.now()} .")
+def create_bundle(fhir_resources: Iterable[FHIRResourceModel]):
     bundle = Bundle.construct(type=Code("batch"), entry=[BundleEntryType({
         "fullUrl": p.relative_path(),
         "resource": p,
@@ -33,9 +28,18 @@ def send_singletype_bundle(fhir_resources: Iterable[FHIRResourceModel], processe
             "url": p.relative_path()
         }
     }) for p in fhir_resources])
+    return bundle
+
+
+def send_singletype_bundle(fhir_resources: Iterable[FHIRResourceModel], processed_results: list[BundleResult] = None):
+    resource_name = next(iter(fhir_resources)).resource_type
+    print(f"⌚ Convert {resource_name} to FHIR Bundle entries at {datetime.now()} .")
+
+    bundle = create_bundle(fhir_resources)
 
     print(f"Sending {len(fhir_resources)} entries of {resource_name} to FHIR server at {datetime.now()} .")
-    processed_results.append(post_bundle_to_fhir_server(bundle))
+    if processed_results is not None:
+        processed_results.append(post_bundle_to_fhir_server(bundle))
 
 
 def bundle_cycler(fhir_resources: Iterable[FHIRResourceModel], processed_results: list[BundleResult]):
@@ -57,14 +61,7 @@ def bundle_cycler(fhir_resources: Iterable[FHIRResourceModel], processed_results
         cycle_entries.append(entries[i])
         if ((i > 0) and (i % max_patient_per_cycle == 0)) or (i + 1 == items_count):
             print(f"📡 Sending {resource_name} cycle {cycle + 1} of {ceil(items_count / max_patient_per_cycle)} at {datetime.now()}.")
-            bundle = Bundle.construct(type=Code("batch"), entry=[BundleEntryType({
-                "fullUrl": p.relative_path(),
-                "resource": p,
-                "request": {
-                    "method": "PUT",
-                    "url": p.relative_path()
-                }
-            }) for p in cycle_entries])
+            bundle = create_bundle(cycle_entries)
             processed_results.append(post_bundle_to_fhir_server(bundle))
             cycle = cycle + 1
             cycle_entries.clear()

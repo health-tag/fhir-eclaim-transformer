@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from os import PathLike
+from pathlib import Path
 
 import pandas as pd
+from dbfread import DBF
 
 """
 hn       |an|date    |total |paid|pttype|person_id    |seq
@@ -18,9 +20,16 @@ class ChtCsvRow:
     patient_type:str
     sequence:str
 
-def open_cht_csv(file_path: PathLike) -> list[ChtCsvRow]:
-    df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
+def open_cht_file(file_path: PathLike) -> list[ChtCsvRow]:
+    match Path(file_path).suffix:
+        case ".dbf":
+            dbf = DBF(file_path)
+            df = pd.DataFrame(iter(dbf))
+        case ".txt":
+            df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
     df.columns = df.columns.str.lower()
+    df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
     items = list[ChtCsvRow]()
     for i, row in df.iterrows():
         items.append(ChtCsvRow(sequence=row["seq"],

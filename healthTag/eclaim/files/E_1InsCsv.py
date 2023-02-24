@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from os import PathLike
+from pathlib import Path
 
 import pandas as pd
+from dbfread import DBF
 
 """
 hn       |inscl|subtype|cid          |datein  |dateexp|hospmain|hospsub|govcode|govname|permitno|docno|ownrpid|ownname|an|seq      |subinscl|relinscl|htype
@@ -26,9 +28,17 @@ SSS = ประกันสังคม
 LGO = อปท
 SSI = ประกันสังคมทุพพลภาพ
 """
-def open_ins_csv(file_path: PathLike) -> list[InsCsvRow]:
-    df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
+def open_ins_file(file_path: PathLike) -> list[InsCsvRow]:
+    match Path(file_path).suffix:
+        case ".dbf":
+            dbf = DBF(file_path)
+            df = pd.DataFrame(iter(dbf))
+        case ".txt":
+            df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
+
     df.columns = df.columns.str.lower()
+    df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
     items = list[InsCsvRow]()
     for i, row in df.iterrows():
         items.append(InsCsvRow(sequence=row["seq"],

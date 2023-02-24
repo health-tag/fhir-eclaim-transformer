@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from os import PathLike
+from pathlib import Path
 
 import pandas as pd
+from dbfread import DBF
 
 '''
 hn|datedx|clinic|diag|dxtype|drdx|person_id|seq
@@ -21,10 +23,16 @@ class OdxCsvRow:
     citizen_id:str
 
 
-def open_odx_csv(file_path: PathLike) -> list[OdxCsvRow]:
-
-    df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
+def open_odx_file(file_path: PathLike) -> list[OdxCsvRow]:
+    match Path(file_path).suffix:
+        case ".dbf":
+            dbf = DBF(file_path)
+            df = pd.DataFrame(iter(dbf))
+        case ".txt":
+            df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
     df.columns = df.columns.str.lower()
+    df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
     items = list[OdxCsvRow]()
     for i, row in df.iterrows():
         items.append(OdxCsvRow(sequence=row["seq"],

@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from os import PathLike
+from pathlib import Path
 
 import pandas as pd
+from dbfread import DBF
 
 
 @dataclass
@@ -59,9 +61,16 @@ class DruCsvRow:
 #hcode|hn       |an|clinic|person_id    |date_serv|did     |didname               |amount|drugpric|drugcost|didstd                  |unit|unit_pack|seq       |drugremark|pa_no|totcopay|use_status|total
 #11218|651218347|  |0011  |1842228343492|20220912 |D0000910|Guaifenesin 200 mg tab|20.00 |1.0     |0.24    |101124000014203120381144|เม็ด  |         |065156262|           |     |0.00    |2         |20.00
 
-def open_dru_csv(file_path: PathLike) -> list[DruCsvRow]:
-    df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
+def open_dru_file(file_path: PathLike) -> list[DruCsvRow]:
+    match Path(file_path).suffix:
+        case ".dbf":
+            dbf = DBF(file_path)
+            df = pd.DataFrame(iter(dbf))
+        case ".txt":
+            df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
     df.columns = df.columns.str.lower()
+    df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
     items = list[DruCsvRow]()
     for i, row in df.iterrows():
         items.append(DruCsvRow(hospital_code=row["hcode"],

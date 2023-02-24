@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from os import PathLike
+from pathlib import Path
 
 import pandas as pd
+from dbfread import DBF
 
 '''
 hn       |dateopd X|clinic X|refer|refertype|seq
@@ -19,9 +21,16 @@ class OrfCsvRow:
     refer_type: str = None
 
 
-def open_orf_csv(file_path: PathLike) -> list[OrfCsvRow]:
-    df = pd.read_csv(file_path, encoding="utf8", delimiter="|",dtype=str)
+def open_orf_file(file_path: PathLike) -> list[OrfCsvRow]:
+    match Path(file_path).suffix:
+        case ".dbf":
+            dbf = DBF(file_path)
+            df = pd.DataFrame(iter(dbf))
+        case ".txt":
+            df = pd.read_csv(file_path, encoding="utf8", delimiter="|", dtype=str)
     df.columns = df.columns.str.lower()
+    df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
     items = list[OrfCsvRow]()
     for i, row in df.iterrows():
         items.append(OrfCsvRow(sequence=row["seq"],
