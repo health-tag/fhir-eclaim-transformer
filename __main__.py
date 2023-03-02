@@ -24,6 +24,9 @@ if __name__ == '__main__':
     if (args.watch_mode is True):
         path = Path("workingdir")
         Path(path).mkdir(exist_ok=True)
+        # Path("workingdir/dbf").mkdir(exist_ok=True)
+        # Path("workingdir/txt").mkdir(exist_ok=True)
+        Path("workingdir/hlab_output").mkdir(exist_ok=True)
         check_job_folder(path)
         sys.exit(watch_folder(path))
 
