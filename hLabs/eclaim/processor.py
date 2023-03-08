@@ -7,7 +7,7 @@ from hLabs.eclaim.bundle_package import create_bundle_resource_eclaim
 
 load_dotenv()
 
-def process(path_2_files: str ,files_type: str, import_time: datetime, set_no: int, slash: str):
+def process(path_2_files: str ,files_type: str, slash: str):
     # Import Environment Variable
     local_output_path = os.getenv('LOCAL_OUTPUT_PATH')
     hos_addr = os.getenv('HOS_ADDR')
@@ -20,7 +20,7 @@ def process(path_2_files: str ,files_type: str, import_time: datetime, set_no: i
     else:
         print('Reading..txt..files')
         eclaim_17_df,eclaim_17_name = open_csv_files(path_2_files,set_files_name, slash)
-    # Prepare Bundle Resource From DBF
+    # Prepare Bundle Resource
     bundle_resource = create_bundle_resource_eclaim(eclaim_17_df,eclaim_17_name,hos_addr,hos_name,os_vm)
     bundle_resource = json_dump(bundle_resource)
     save_json_files(local_output_path,bundle_resource)

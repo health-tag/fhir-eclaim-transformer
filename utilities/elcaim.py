@@ -1,4 +1,5 @@
 import platform
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -12,4 +13,4 @@ def process_eclaim_folder(files: dict[str, Optional[Path]]):
                       output_folder= files["ins"].parent
                       )
     slash = "\\" if platform.system() == "Windows" else "/"
-    hLabs_process([f.name for f in files.values()], "txt", 1, slash)
+    hLabs_process([os.path.join(f.parent.name , f.name) for f in files.values()], "txt", slash)

@@ -22,7 +22,7 @@ def open_csv_files(file_path: str,set_files_name: list, slash: str):
     eclaim_17_df = []
     eclaim_17_name = []
     for i in file_path:
-        file_name = i.split(slash)[4][:3]
+        file_name = i.split(slash)[1][:3]
         file_name = file_name.lower()
         if file_name == 'ins':
             frame_csv = open_ins_csv(i)
