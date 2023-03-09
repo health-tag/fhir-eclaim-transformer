@@ -10,7 +10,7 @@ from fhir.resources.fhirresourcemodel import FHIRResourceModel
 from fhir.resources.fhirtypes import Code, BundleEntryType
 from fhir.resources.bundle import Bundle
 
-from configurations.fhir_server import max_patient_per_cycle, headers
+from configurations.fhir_server import max_patient_per_cycle
 
 from configurations.fhir_server import base_fhir_url
 from healthTag.models.result import BundleResult, EntryResult
