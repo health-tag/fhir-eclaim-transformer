@@ -193,7 +193,7 @@ provider_type_dict = {
     "5": "Super tertiary"
 }
         
-def create_bundle_resource_eclaim(eclaim_17_df,eclaim_17_name,h_code,h_name,os):
+def create_bundle_resource_eclaim(eclaim_17_df,eclaim_17_name,h_code,h_name):
     for i in range(len(eclaim_17_df)):
         if eclaim_17_name[i] == 'ins':
             frame_ins = eclaim_17_df[i]

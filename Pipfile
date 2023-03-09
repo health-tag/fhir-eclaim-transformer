@@ -12,6 +12,7 @@ xmltodict = "*"
 dbfread = "*"
 requests = "*"
 python-dotenv = "*"
+openpyxl = "*"
 
 [dev-packages]
 

@@ -6,6 +6,7 @@ from os import PathLike
 from pathlib import Path
 
 import pandas as pd
+from fhir.resources.resource import Resource
 from fhir.resources.bundle import Bundle
 from fhir.resources.fhirtypes import Id, Code, String, Uri, Boolean, Decimal
 from fhir.resources.claim import Claim, ClaimInsurance, ClaimItem
@@ -39,7 +40,7 @@ from healthTag.eclaim.files.E_6OopCsv import open_oop_file, OopCsvRow
 from healthTag.eclaim.files.E_11ChtCsv import open_cht_file, ChtCsvRow
 from healthTag.eclaim.files.E_12ChaCsv import open_cha_file, ChaCsvRow
 from healthTag.eclaim.files.E_16DruCsv import open_dru_file, DruCsvRow
-from typing import Optional
+from typing import Optional, Iterable
 
 from utilities.fhir_communicator import create_bundle
 
@@ -142,17 +143,25 @@ def process_all(_1ins_path: PathLike, _2pat_path: PathLike, _3opd_path: PathLike
         else:
             joined_opd_files[row.sequence].row_16dru.append(row)
 
+    # https://www.nhso.go.th/page/hospital
+    df_nhso = pd.read_excel("reference/nhso_2002-11-25_hospitals_information.xlsx")
+    df_nhso["hcode"] = df_nhso["hcode"].str.strip()
+    df_nhso.set_index("hcode", inplace=True)
+    df_nhso.drop_duplicates(inplace=True)
+    hcode_hname_dict = df_nhso.to_dict("index")
     # Organization
     unique_hosp_code = set([item.main_hospital_code for item in _1ins_rows if isinstance(item.main_hospital_code, str)])
     organizations = list[Organization]()
     for hospital_code in unique_hosp_code:
         org: Organization = Organization.construct()
         org.identifier = [Identifier(system="https://www.nhso.go.th", value=hospital_code)]
+        try:
+            org.name = String(hcode_hname_dict[hospital_code.strip()]["hname"])
+        except KeyError:
+            pass
         org.id = Id(f"hcode-{hospital_code}")
         organizations.append(org)
     organizations_dict = dict(zip(unique_hosp_code, organizations))
-
-    save_bundle_to_file(create_bundle(organizations), output_folder, "1_Organization.json")
 
     # Dictionary
     patients_dict: dict[str, Patient] = dict()
@@ -353,13 +362,19 @@ def process_all(_1ins_path: PathLike, _2pat_path: PathLike, _3opd_path: PathLike
                 medication_request.id = Id(f"cid-{citizenId}-vn-{matched_row_16dru.sequence}-24-{matched_row_16dru.drug_id24}")
                 medication_requests.append(medication_request)
 
-    save_bundle_to_file(create_bundle(patients_dict.values()), output_folder, "2_Patient.json")
-    save_bundle_to_file(create_bundle(coverages), output_folder, "3_Coverage.json")
-    save_bundle_to_file(create_bundle(accounts), output_folder, "4_Account.json")
-    save_bundle_to_file(create_bundle(encounters), output_folder, "5_Encounter.json")
-    save_bundle_to_file(create_bundle(service_requests), output_folder, "6_ServiceRequest.json")
-    save_bundle_to_file(create_bundle(conditions), output_folder, "7_Condition.json")
-    save_bundle_to_file(create_bundle(procedures), output_folder, "8_Procedure.json")
-    save_bundle_to_file(create_bundle(claims), output_folder, "9_Claim.json")
-    save_bundle_to_file(create_bundle(medication_dispenses), output_folder, "10_MedicationDispense.json")
-    save_bundle_to_file(create_bundle(medication_requests), output_folder, "12_MedicationRequest.json")
+    # Save to file
+    resource_dict = dict[str, Iterable[Resource]]() # FileName (not used when export as a single file), Resource
+    # The order of resource creation is important because of the parent reference need to be existed before being able to be referenced.
+    resource_dict["1_Organization"] = organizations
+    resource_dict["2_Patient"] = patients_dict.values()
+    resource_dict["3_Coverage"] = coverages
+    resource_dict["4_Account"] = accounts
+    resource_dict["5_Encounter"] = encounters
+    resource_dict["6_ServiceRequest"] = service_requests
+    resource_dict["7_Condition"] = conditions
+    resource_dict["8_Procedure"] = procedures
+    resource_dict["9_Claim"] = claims
+    resource_dict["10_MedicationDispense"] = medication_dispenses
+    resource_dict["11_MedicationRequest"] = medication_requests
+
+    save_bundle_to_file(create_bundle([resource for resources in resource_dict.values() for resource in resources]), output_folder, "bundle_1.json")
