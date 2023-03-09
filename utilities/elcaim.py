@@ -2,7 +2,6 @@ import platform
 import os
 from pathlib import Path
 from typing import Optional
-
 from hLabs.eclaim.processor import process as hLabs_process
 from healthTag.eclaim.processor import process_all as healthtag_process
 
@@ -15,5 +14,6 @@ def process_eclaim_folder(files: dict[str, Optional[Path]]):
                       _11cht_path=files["cht"], _12cha_path=files["cha"], _16dru_path=files["dru"],
                       output_folder=output
                       )
+    files_type = files["ins"].suffix
     slash = "\\" if platform.system() == "Windows" else "/"
-    hLabs_process([os.path.join(f.parent.name, f.name) for f in files.values()], "txt", slash, output_folder=output.joinpath("bundle_2.json"))
+    hLabs_process([f.as_posix() for f in files.values()], files_type, slash, output_folder=output.joinpath("bundle_2.json"))
