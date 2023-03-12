@@ -15,5 +15,7 @@ def process_eclaim_folder(files: dict[str, Optional[Path]]):
                       output_folder=output
                       )
     files_type = files["ins"].suffix
-    slash = "\\" if platform.system() == "Windows" else "/"
-    hLabs_process([f.as_posix() for f in files.values()], files_type, slash, output_folder=output.joinpath("bundle_2.json"))
+    hLabs_process(files.values(), files_type,  output_folder=output.joinpath("bundle_2.json"))
+    with open(Path(files["ins"].parent,"done"), "w", encoding='utf8') as f:
+        pass
+
