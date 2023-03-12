@@ -22,7 +22,7 @@ def open_csv_files(file_path: str,set_files_name: list, slash: str):
     eclaim_17_df = []
     eclaim_17_name = []
     for i in file_path:
-        file_name = i.split(slash)[1][:3]
+        file_name = i.split(slash)[2][:3]
         file_name = file_name.lower()
         if file_name == 'ins':
             frame_csv = open_ins_csv(i)
@@ -77,8 +77,8 @@ def open_csv_files(file_path: str,set_files_name: list, slash: str):
             eclaim_17_df.append(frame_csv)
             eclaim_17_name.append(file_name)
     for i in list(set(set_files_name) - set(eclaim_17_name)):
-        print(f'{i} file is not found')
-        print(f'Mocking {i} file .. Successfully')
+        # print(f'{i} file is not found')
+        # print(f'Mocking {i} file .. Successfully')
         df = pd.DataFrame()
         eclaim_17_df.append(df)
         eclaim_17_name.append(i)           
@@ -87,7 +87,7 @@ def open_dbf_files(file_path: str,set_files_name: list, slash: str):
     eclaim_17_df = []
     eclaim_17_name = []
     for i in file_path:
-        file_name = i.split(slash)[4][:3]
+        file_name = i.split(slash)[2][:3]
         file_name = file_name.lower()
         if file_name == 'ins':
             frame_csv = open_ins_dbf(i)
@@ -142,8 +142,8 @@ def open_dbf_files(file_path: str,set_files_name: list, slash: str):
             eclaim_17_df.append(frame_csv)
             eclaim_17_name.append(file_name)
     for i in list(set(set_files_name) - set(eclaim_17_name)):
-        print(f'{i} file is not found')
-        print(f'Mocking {i} file .. Successfully')
+        # print(f'{i} file is not found')
+        # print(f'Mocking {i} file .. Successfully')
         df = pd.DataFrame()
         eclaim_17_df.append(df)
         eclaim_17_name.append(i)                  

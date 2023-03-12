@@ -14,7 +14,7 @@ def process(path_2_files: str ,files_type: str, slash: str, output_folder: Path)
     hos_addr = os.getenv('HOS_ADDR')
     hos_name = os.getenv('HOS_NAME')
     set_files_name = os.getenv('SET_FILES_NAME').split(',')
-    if files_type == 'dbf':
+    if files_type == '.dbf':
         print('Reading..dbf..files')
         eclaim_17_df,eclaim_17_name = open_dbf_files(path_2_files,set_files_name, slash)
     else:
