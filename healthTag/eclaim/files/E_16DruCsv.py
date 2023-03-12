@@ -72,7 +72,7 @@ def open_dru_file(file_path: PathLike) -> list[DruCsvRow]:
     df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
     items = list[DruCsvRow]()
-    for i, row in df.iterrows():
+    for row in df.to_dict("records"):
         items.append(DruCsvRow(hospital_code=row["hcode"],
                                hospital_number=row["hn"],
                                admission_number=row["an"],

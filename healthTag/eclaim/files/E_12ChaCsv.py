@@ -32,7 +32,7 @@ def open_cha_file(file_path: PathLike) -> list[ChaCsvRow]:
     df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
     items = list[ChaCsvRow]()
-    for i, row in df.iterrows():
+    for row in df.to_dict("records"):
         items.append(ChaCsvRow(sequence=row["seq"],
                                hospital_number=row["hn"],
                                citizen_id=row["person_id"],

@@ -34,7 +34,7 @@ def open_pat_file(file_path: PathLike) -> list[PatCsvRow]:
     df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
     items = list[PatCsvRow]()
-    for i, row in df.iterrows():
+    for row in df.to_dict("records"):
         items.append(PatCsvRow(hospital_code=row["hcode"],
                                title=row["title"],
                                name=row["fname"],

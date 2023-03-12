@@ -34,7 +34,7 @@ def open_odx_file(file_path: PathLike) -> list[OdxCsvRow]:
     df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
     items = list[OdxCsvRow]()
-    for i, row in df.iterrows():
+    for row in df.to_dict("records"):
         items.append(OdxCsvRow(sequence=row["seq"],
                                hospital_number=row["hn"],
                                visit_date=row["datedx"],

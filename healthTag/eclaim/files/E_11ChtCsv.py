@@ -31,7 +31,7 @@ def open_cht_file(file_path: PathLike) -> list[ChtCsvRow]:
     df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
     items = list[ChtCsvRow]()
-    for i, row in df.iterrows():
+    for row in df.to_dict("records"):
         items.append(ChtCsvRow(sequence=row["seq"],
                                hospital_number=row["hn"],
                                citizen_id=row["person_id"],

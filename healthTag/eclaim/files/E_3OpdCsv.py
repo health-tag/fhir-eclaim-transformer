@@ -33,7 +33,7 @@ def open_opd_file(file_path: PathLike) -> list[OpdCsvRow]:
     df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
     items = list[OpdCsvRow]()
-    for i, row in df.iterrows():
+    for row in df.to_dict("records"):
         items.append(OpdCsvRow(sequence=row["seq"],
                                hospital_number=row["hn"],
                                clinic=row["clinic"],

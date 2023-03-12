@@ -33,7 +33,7 @@ def open_oop_file(file_path: PathLike) -> list[OopCsvRow]:
     df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
     items = list[OopCsvRow]()
-    for i, row in df.iterrows():
+    for row in df.to_dict("records"):
         items.append(OopCsvRow(sequence=row["seq"],
                                 hospital_number=row["hn"],
                                 dateopd=row["dateopd"],

@@ -40,7 +40,7 @@ def open_ins_file(file_path: PathLike) -> list[InsCsvRow]:
     df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
     items = list[InsCsvRow]()
-    for i, row in df.iterrows():
+    for row in df.to_dict("records"):
         items.append(InsCsvRow(sequence=row["seq"],
                                htype=row["htype"],
                                hospital_number=row["hn"],
