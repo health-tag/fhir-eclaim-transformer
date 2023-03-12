@@ -29,7 +29,7 @@ if __name__ == '__main__':
         check_job_folder(path)
         sys.exit(watch_folder(path))
 
-    if (args.folder_name is None):
+    if (args.path is None):
         print('Please use --path "path to folder" or use --watch argument to watch folder in workingdir')
         sys.exit(1)
     else:
