@@ -6,13 +6,13 @@ name = "pypi"
 [packages]
 pandas = "*"
 "fhir.resources" = "*"
-jsonpickle = "*"
 watchdog = "*"
 xmltodict = "*"
 dbfread = "*"
 requests = "*"
 python-dotenv = "*"
 openpyxl = "*"
+tqdm = "*"
 
 [dev-packages]
 
