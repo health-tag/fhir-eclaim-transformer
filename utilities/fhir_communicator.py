@@ -1,8 +1,8 @@
 import traceback
 import warnings
+from collections.abc import Iterable
 from datetime import datetime
 from math import ceil
-from typing import Iterable
 import re
 
 import requests
@@ -10,14 +10,15 @@ from fhir.resources.fhirresourcemodel import FHIRResourceModel
 from fhir.resources.fhirtypes import Code, BundleEntryType
 from fhir.resources.bundle import Bundle
 
-from configurations.fhir_server import max_patient_per_cycle
+from configurations.fhir import max_patient_per_cycle
 
-from configurations.fhir_server import base_fhir_url
+from configurations.fhir import base_fhir_url
 from healthTag.models.result import BundleResult, EntryResult
 
 actual_header = {
     "Content-Type": "application/json"
 }
+
 
 def create_bundle(fhir_resources: Iterable[FHIRResourceModel]):
     bundle = Bundle.construct(type=Code("batch"), entry=[BundleEntryType({
@@ -60,7 +61,8 @@ def bundle_cycler(fhir_resources: Iterable[FHIRResourceModel], processed_results
     for i in range(0, items_count):
         cycle_entries.append(entries[i])
         if ((i > 0) and (i % max_patient_per_cycle == 0)) or (i + 1 == items_count):
-            print(f"📡 Sending {resource_name} cycle {cycle + 1} of {ceil(items_count / max_patient_per_cycle)} at {datetime.now()}.")
+            print(
+                f"📡 Sending {resource_name} cycle {cycle + 1} of {ceil(items_count / max_patient_per_cycle)} at {datetime.now()}.")
             bundle = create_bundle(cycle_entries)
             processed_results.append(post_bundle_to_fhir_server(bundle))
             cycle = cycle + 1
@@ -69,7 +71,7 @@ def bundle_cycler(fhir_resources: Iterable[FHIRResourceModel], processed_results
 
 
 def post_bundle_to_fhir_server(bundle: Bundle) -> BundleResult:
-    payload = bundle.json()#jsonpickle.encode(bundle, unpicklable=False)
+    payload = bundle.json()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         try:
@@ -97,6 +99,7 @@ def post_bundle_to_fhir_server(bundle: Bundle) -> BundleResult:
             traceback.print_exc()
             print("-- END EXCEPTION --")
             return BundleResult(592,
-                                [EntryResult(entry["resource"].resource_type, entry["fullUrl"], "592 Python Exception Occurs")
+                                [EntryResult(entry["resource"].resource_type, entry["fullUrl"],
+                                             "592 Python Exception Occurs")
                                  for entry in
                                  bundle.entry])
