@@ -242,6 +242,9 @@ def create_bundle_resource_eclaim(eclaim_17_df,eclaim_17_name,h_code,h_name):
     # init array bundle & dict
     entry = []
     hcode_id = "hcode" + str(h_code)
+    # Create Organization Resource
+    bundle_organization_structure = create_organization_resource(h_name,h_code)
+    entry.extend([bundle_organization_structure])
     # create resource
     for hn in unique_ipd_hn:
         bundle_resource = []
@@ -259,8 +262,6 @@ def create_bundle_resource_eclaim(eclaim_17_df,eclaim_17_name,h_code,h_name):
         cht = filter_visit_an(frame_cht,ipd['AN'].values)
         lvd = filter_visit_an(frame_lvd,ipd['AN'].values)
         labfu = filter_visit_an(frame_labfu,ipd['AN'].values)
-        # Create Organization Resource
-        bundle_organization_structure = create_organization_resource(h_name,h_code)
         # Create Patient Resource (PAT)
         bundle_patient_structure,bundle_observation_occupation_structure = create_patient_resource(pat,h_code)
         # Create Encounter Resource (IPD)
@@ -321,8 +322,6 @@ def create_bundle_resource_eclaim(eclaim_17_df,eclaim_17_name,h_code,h_name):
                     bundle_resource.append(bundle_observation_gravida_structure)
         # Create Observation Labfu
         bundle_observation_labfu_structure = create_observation_lab_resource(labfu,bundle_patient_structure,bundle_encounter_structure,h_code)
-        if len(bundle_organization_structure) > 0:  
-            bundle_resource.append(bundle_organization_structure)
         if len(bundle_encounter_structure) > 0:  
             bundle_resource.append(bundle_encounter_structure)
         if len(bundle_patient_structure) > 0:  
@@ -1185,18 +1184,37 @@ def create_medication_dispense_resource(dru,patient_bundle,encounter_bundle):
     patient_resource = dict()
     bundle_med_disp_structure = dict()
     bundle_med_disp_structure_arr = []
+    seq_check_an = ''
+    seq_counter = 0
     if 'resource' in encounter_bundle:
         encounter_resource = encounter_bundle['resource']
     if 'resource' in patient_bundle:
         patient_resource = patient_bundle['resource']
     if dru.shape[0] != 0:
         for i in range(dru.shape[0]):
-          med_dispense_id = f"{encounter_resource['id']}-code-{dru['DID'][i]}"
+          if seq_check_an == dru['AN'][i]:
+                seq_counter += 1
+          else:
+                seq_counter = 0
+                seq_check_an = dru['AN'][i]
+          med_dispense_id = f"{encounter_resource['id']}-code-{dru['DID'][i]}-seq-{seq_counter}"
           med_dispense_resource = {
               "resourceType" : "MedicationDispense",
               "id" : med_dispense_id,
-              "status": "completed"
+              "status": "completed",
           }
+          if dru['USE_STATUS'][i] is not None and len(dru['USE_STATUS'][i]) > 0:
+              med_dispense_resource["category"] = [
+                  {
+                    "coding": [
+                      {
+                        "system": "https://terms.sil-th.org/CodeSystem/cs-eclaim-medication-category",
+                        "code": dru['USE_STATUS'][i],
+                        "display": drug_use_status_dict[dru['USE_STATUS'][i]]
+                      }
+                    ]
+                  }
+                ]
           if dru['DID'][i] is not None and len(dru['DID'][i]) > 0:
               if "medicationCodeableConcept" not in med_dispense_resource:
                   med_dispense_resource["medicationCodeableConcept"] = dict()
@@ -1293,13 +1311,20 @@ def create_medication_request_resource(dru,patient_bundle,encounter_bundle):
     patient_resource = dict()
     bundle_med_req_structure = dict()
     bundle_med_req_structure_arr = []
+    seq_check_an = ''
+    seq_counter = 0
     if 'resource' in encounter_bundle:
         encounter_resource = encounter_bundle['resource']
     if 'resource' in patient_bundle:
         patient_resource = patient_bundle['resource']
     if dru.shape[0] != 0:
         for i in range(dru.shape[0]):
-          med_request_id = f"{encounter_resource['id']}-code-{dru['DID'][i]}"
+          if seq_check_an == dru['AN'][i]:
+                seq_counter += 1
+          else:
+                seq_counter = 0
+                seq_check_an = dru['AN'][i]
+          med_request_id = f"{encounter_resource['id']}-code-{dru['DID'][i]}-seq-{seq_counter}"
           med_request_resource = {
             "resourceType": "MedicationRequest",
             "id": med_request_id,
