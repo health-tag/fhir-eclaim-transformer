@@ -9,6 +9,8 @@ import pandas as pd
 from fhir.resources import FHIRAbstractModel
 
 from configurations.fhir import use_pydactic_validation
+from configurations.id import patient_id, coverage_id, account_id, encounter_id, service_request_id, condition_id, \
+    procedure_id, claim_id, organization_id, medication_request_id, medication_dispense_id, claim_drug_id
 
 FHIRAbstractModel.Config.validate_assignment = use_pydactic_validation
 from fhir.resources.resource import Resource
@@ -83,7 +85,7 @@ def process_patient(organizations_dict: dict[str, Organization], patients_dict: 
     patient.gender = Code("male" if row.gender_number == 1 else "female")
     matched_org = organizations_dict[row.hospital_code]
     patient.managingOrganization = Reference(reference=matched_org.relative_path())
-    patient.id = Id(f"cid-{row.citizen_id}")
+    patient.id = patient_id(row.citizen_id)
 
     patients_dict[row.hospital_number] = patient
 
@@ -99,12 +101,14 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
     matched: JoinedOpd
     sequence, matched = matched
     if matched.row_1ins is None:
-        # So this is not OPD
+        # This is not an OPD entry. Ignore it because hLabs code will handle it
         return
     patient = patients_dict[matched.row_1ins.hospital_number]
     matched_org: Optional[Organization] = None
-    if (not pd.isna(matched.row_1ins.main_hospital_code)):
+    main_hospital_code = None
+    if not pd.isna(matched.row_1ins.main_hospital_code):
         matched_org = organizations_dict[matched.row_1ins.main_hospital_code]
+        main_hospital_code= matched.row_1ins.main_hospital_code
     citizenId = patient.identifier[0].value  # type: ignore
     # Coverage
     if matched.row_1ins is not None and matched.row_11cht is not None:
@@ -134,7 +138,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                           valueIdentifier=Identifier(system=Uri("https://terms.sil-th.org/id/th-moph-hcode"),
                                                      value=String(matched.row_1ins.main_hospital_code)))
             ])]
-        coverage.id = Id(f"cid-{citizenId}-vn-{sequence}")
+        coverage.id = coverage_id(main_hospital_code,citizenId)
         coverages.append(coverage)
 
     if matched.row_3opd is not None:
@@ -154,7 +158,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                       valueCodeableConcept=CodeableConcept(coding=[
                           Coding(system=Uri("https://terms.sil-th.org/CodeSystem/cs-43plus-coverage-use"),
                                  code=Code(matched.row_3opd.uuc))]))]
-        account.id = Id(f"cid-{citizenId}-vn-{matched.row_3opd.sequence}")
+        account.id = account_id(main_hospital_code,matched.row_3opd.sequence)
         accounts.append(account)
 
         # Encounter
@@ -196,7 +200,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                 valueCodeableConcept=CodeableConcept(coding=[
                     Coding(system=Uri("https://terms.sil-th.org/CodeSystem/cs-eclaim-service-type-th"),
                            code=Code(matched.row_3opd.optype), display=String("OP บัตรตัวเอง"))]))]
-        encounter.id = Id(f"cid-{citizenId}-vn-{matched.row_3opd.sequence}")
+        encounter.id = encounter_id(main_hospital_code,matched.row_3opd.sequence)
         encounters.append(encounter)
 
         # ServiceRequest
@@ -209,13 +213,13 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
             service_request.encounter = Reference(reference=encounter.relative_path())
             if matched_org is not None:
                 service_request.performer = [Reference(reference=matched_org.relative_path())]
-            service_request.id = Id(f"cid-{citizenId}-vn-{matched.row_4orf.sequence}-sr")
+            service_request.id = service_request_id(main_hospital_code, matched.row_4orf.sequence)
             service_request.code = CodeableConcept(coding=[
                 Coding(system=Uri("http://snomed.info/sct"), code=Code("3457005"),
                        display=String("Patient referral"))])
             service_requests.append(service_request)
         # Condition
-        for matched_row_16dru in matched.row_5odx:
+        for matched_row_5odx in matched.row_5odx:
             condition = Condition.construct()
             condition.clinicalStatus = CodeableConcept(coding=[
                 Coding(system=Uri("http://terminology.hl7.org/CodeSystem/condition-clinical"),
@@ -225,19 +229,19 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                        code=Code("encounter-diagnosis"), display=String("Encounter Diagnosis"))])]
             condition.code = CodeableConcept(coding=[
                 Coding(system=Uri("http://hl7.org/fhir/sid/icd-10"),
-                       code=Code(matched_row_16dru.diagnosis_icd10))])
+                       code=Code(matched_row_5odx.diagnosis_icd10))])
             condition.subject = Reference(reference=patient.relative_path())
             condition.encounter = Reference(reference=encounter.relative_path())
-            condition.id = Id(f"cid-{citizenId}-vn-{matched_row_16dru.sequence}-cdx")
+            condition.id = condition_id(main_hospital_code, matched_row_5odx.sequence, matched_row_5odx.diagnosis_icd10)
             conditions.append(condition)
         # Procedure
-        for matched_row_16dru in matched.row_6oop:
+        for matched_row_6oop in matched.row_6oop:
             procedure = Procedure.construct()
             procedure.status = Code("completed")
             procedure.identifier = [Identifier(system=Uri(f"https://sil-th.org/fhir/Id/service-id"),
                                                value=String(matched.row_3opd.sequence))]
             procedure.code = CodeableConcept(coding=[
-                Coding(system=Uri("http://hl7.org/fhir/sid/icd-9-cm"), code=Code(matched_row_16dru.operation),
+                Coding(system=Uri("http://hl7.org/fhir/sid/icd-9-cm"), code=Code(matched_row_6oop.operation),
                        display=String("Patient referral"))])
             procedure.category = CodeableConcept(coding=[
                 Coding(system=Uri("http://terminology.hl7.org/CodeSystem/procedure-category"),
@@ -245,13 +249,13 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                        display=String("Exam"))])
             procedure.subject = Reference(reference=patient.relative_path())
             procedure.encounter = Reference(reference=encounter.relative_path())
-            procedure.performedDateTime = matched_row_16dru.dateopd
+            procedure.performedDateTime = matched_row_6oop.dateopd
             procedure.performer = [ProcedurePerformer(actor=Reference(type=Uri("Practitioner"),
                                                                       identifier=Identifier(system=Uri(
                                                                           f"https://terms.sil-th.org/id/th-doctor-id"),
                                                                           value=String(
-                                                                              matched_row_16dru.dropid))))]
-            procedure.id = Id(f"cid-{citizenId}-vn-{matched_row_16dru.sequence}-proc")
+                                                                              matched_row_6oop.dropid))))]
+            procedure.id = procedure_id(main_hospital_code,matched_row_6oop.sequence, matched_row_6oop.operation )
             procedures.append(procedure)
         # Claim (11,12)
         if matched.row_11cht is not None:
@@ -294,7 +298,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                     claimItem.encounter = [Reference(reference=encounter.relative_path())]
                     claimItem.net = Money(value=Decimal(matched_row_12cha.amount), currency=Code("THB"))
                     claim.item.append(claimItem)
-            claim.id = Id(f"cid-{citizenId}-vn-{matched.row_11cht.sequence}-claim")
+            claim.id = claim_id(main_hospital_code, matched.row_11cht.sequence)
             claims.append(claim)
 
         for matched_row_16dru in matched.row_16dru:
@@ -328,8 +332,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                                                          currency=Code("THB")),
                                          net=Money(value=Decimal(matched_row_16dru.total),
                                                    currency=Code("THB")))]
-            drug_claim.id = Id(
-                f"cid-{citizenId}-vn-{matched_row_16dru.sequence}-24-{matched_row_16dru.drug_id24}")
+            drug_claim.id = claim_drug_id(main_hospital_code,matched_row_16dru.sequence)
             claims.append(drug_claim)
 
             # MedicationDispense
@@ -350,8 +353,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
             medication_dispense.quantity = Quantity(value=Decimal(matched_row_16dru.amount),
                                                     unit=String(matched_row_16dru.unit))
             medication_dispense.whenHandedOver = String(matched_row_16dru.service_date)
-            medication_dispense.id = Id(
-                f"cid-{citizenId}-vn-{matched_row_16dru.sequence}-24-{matched_row_16dru.drug_id24}")
+            medication_dispense.id = medication_dispense_id(main_hospital_code, matched_row_16dru.sequence, matched_row_16dru.drug_id24)
             medication_dispenses.append(medication_dispense)
 
             # MedicationRequest
@@ -384,8 +386,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
             medication_request.subject = Reference(reference=patient.relative_path())
             medication_request.encounter = Reference(reference=encounter.relative_path())
             medication_request.authoredOn = String(matched_row_16dru.service_date)
-            medication_request.id = Id(
-                f"cid-{citizenId}-vn-{matched_row_16dru.sequence}-24-{matched_row_16dru.drug_id24}")
+            medication_request.id = medication_request_id(main_hospital_code, matched_row_16dru.sequence, matched_row_16dru.drug_id24)
             medication_requests.append(medication_request)
 
 
@@ -487,7 +488,7 @@ def process_all(_1ins_path: PathLike, _2pat_path: PathLike, _3opd_path: PathLike
             org.name = String(hcode_hname_dict[hospital_code.strip()]["hname"])
         except KeyError:
             pass
-        org.id = Id(f"hcode-{hospital_code}")
+        org.id = organization_id(hospital_code)
         organizations.append(org)
     organizations_dict = dict(zip(unique_hosp_code, organizations))
 
