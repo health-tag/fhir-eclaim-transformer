@@ -136,7 +136,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                            code=Code("primary"), display=String("สถานบริการหลัก"))])),
                 Extension(url=Uri("provider"),
                           valueIdentifier=Identifier(system=Uri("https://terms.sil-th.org/id/th-moph-hcode"),
-                                                     value=String(matched.row_1ins.main_hospital_code)))
+                                                     value=String(main_hospital_code)))
             ])]
         coverage.id = coverage_id(main_hospital_code,citizenId)
         coverages.append(coverage)
