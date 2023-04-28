@@ -13,30 +13,30 @@ from configurations.id import patient_id, coverage_id, account_id, encounter_id,
     procedure_id, claim_id, organization_id, medication_request_id, medication_dispense_id, claim_drug_id
 
 FHIRAbstractModel.Config.validate_assignment = use_pydactic_validation
-from fhir.resources.resource import Resource
-from fhir.resources.bundle import Bundle
-from fhir.resources.fhirtypes import Id, Code, String, Uri, Boolean, Decimal
-from fhir.resources.claim import Claim, ClaimInsurance, ClaimItem
-from fhir.resources.codeableconcept import CodeableConcept
-from fhir.resources.condition import Condition
-from fhir.resources.coverage import Coverage, CoverageClass
-from fhir.resources.humanname import HumanName
-from fhir.resources.extension import Extension
-from fhir.resources.medicationdispense import MedicationDispense
-from fhir.resources.medicationrequest import MedicationRequest
-from fhir.resources.money import Money
-from fhir.resources.procedure import Procedure, ProcedurePerformer
-from fhir.resources.quantity import Quantity
-from fhir.resources.servicerequest import ServiceRequest
+from fhir.resources.R4B.resource import Resource
+from fhir.resources.R4B.bundle import Bundle
+from fhir.resources.R4B.fhirtypes import Id, Code, String, Uri, Boolean, Decimal
+from fhir.resources.R4B.claim import Claim, ClaimInsurance, ClaimItem
+from fhir.resources.R4B.codeableconcept import CodeableConcept
+from fhir.resources.R4B.condition import Condition
+from fhir.resources.R4B.coverage import Coverage, CoverageClass
+from fhir.resources.R4B.humanname import HumanName
+from fhir.resources.R4B.extension import Extension
+from fhir.resources.R4B.medicationdispense import MedicationDispense
+from fhir.resources.R4B.medicationrequest import MedicationRequest
+from fhir.resources.R4B.money import Money
+from fhir.resources.R4B.procedure import Procedure, ProcedurePerformer
+from fhir.resources.R4B.quantity import Quantity
+from fhir.resources.R4B.servicerequest import ServiceRequest
 
-from fhir.resources.organization import Organization
-from fhir.resources.identifier import Identifier
-from fhir.resources.patient import Patient
-from fhir.resources.reference import Reference
-from fhir.resources.coding import Coding
-from fhir.resources.period import Period
-from fhir.resources.account import Account
-from fhir.resources.encounter import Encounter, EncounterLocation
+from fhir.resources.R4B.organization import Organization
+from fhir.resources.R4B.identifier import Identifier
+from fhir.resources.R4B.patient import Patient
+from fhir.resources.R4B.reference import Reference
+from fhir.resources.R4B.coding import Coding
+from fhir.resources.R4B.period import Period
+from fhir.resources.R4B.account import Account
+from fhir.resources.R4B.encounter import Encounter, EncounterLocation
 from tqdm import tqdm
 
 from healthTag.eclaim.files.E_1InsCsv import open_ins_file, InsCsvRow
@@ -332,7 +332,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                                                          currency=Code("THB")),
                                          net=Money(value=Decimal(matched_row_16dru.total),
                                                    currency=Code("THB")))]
-            drug_claim.id = claim_drug_id(main_hospital_code,matched_row_16dru.sequence)
+            drug_claim.id = claim_drug_id(main_hospital_code,matched_row_16dru.sequence, matched_row_16dru.drug_id24)
             claims.append(drug_claim)
 
             # MedicationDispense

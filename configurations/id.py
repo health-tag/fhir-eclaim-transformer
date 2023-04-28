@@ -1,4 +1,4 @@
-from fhir.resources.fhirtypes import Id
+from fhir.resources.R4B.fhirtypes import Id
 
 
 def organization_id(hospital_code)->Id:

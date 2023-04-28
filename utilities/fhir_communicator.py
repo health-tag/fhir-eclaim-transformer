@@ -6,9 +6,9 @@ from math import ceil
 import re
 
 import requests
-from fhir.resources.fhirresourcemodel import FHIRResourceModel
-from fhir.resources.fhirtypes import Code, BundleEntryType
-from fhir.resources.bundle import Bundle
+from fhir.resources.R4B.fhirresourcemodel import FHIRResourceModel
+from fhir.resources.R4B.fhirtypes import Code, BundleEntryType
+from fhir.resources.R4B.bundle import Bundle
 
 from configurations.fhir import max_patient_per_cycle
 
