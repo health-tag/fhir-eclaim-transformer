@@ -108,7 +108,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
     main_hospital_code = None
     if not pd.isna(matched.row_1ins.main_hospital_code):
         matched_org = organizations_dict[matched.row_1ins.main_hospital_code]
-        main_hospital_code= matched.row_1ins.main_hospital_code
+        main_hospital_code = matched.row_1ins.main_hospital_code
     citizenId = patient.identifier[0].value  # type: ignore
     # Coverage
     if matched.row_1ins is not None and matched.row_11cht is not None:
@@ -138,7 +138,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                           valueIdentifier=Identifier(system=Uri("https://terms.sil-th.org/id/th-moph-hcode"),
                                                      value=String(main_hospital_code)))
             ])]
-        coverage.id = coverage_id(main_hospital_code,citizenId)
+        coverage.id = coverage_id(main_hospital_code, citizenId)
         coverages.append(coverage)
 
     if matched.row_3opd is not None:
@@ -158,7 +158,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                       valueCodeableConcept=CodeableConcept(coding=[
                           Coding(system=Uri("https://terms.sil-th.org/CodeSystem/cs-43plus-coverage-use"),
                                  code=Code(matched.row_3opd.uuc))]))]
-        account.id = account_id(main_hospital_code,matched.row_3opd.sequence)
+        account.id = account_id(main_hospital_code, matched.row_3opd.sequence)
         accounts.append(account)
 
         # Encounter
@@ -200,7 +200,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                 valueCodeableConcept=CodeableConcept(coding=[
                     Coding(system=Uri("https://terms.sil-th.org/CodeSystem/cs-eclaim-service-type-th"),
                            code=Code(matched.row_3opd.optype), display=String("OP บัตรตัวเอง"))]))]
-        encounter.id = encounter_id(main_hospital_code,matched.row_3opd.sequence)
+        encounter.id = encounter_id(main_hospital_code, matched.row_3opd.sequence)
         encounters.append(encounter)
 
         # ServiceRequest
@@ -242,7 +242,8 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                                                value=String(matched.row_3opd.sequence))]
             procedure.code = CodeableConcept(coding=[
                 Coding(system=Uri("http://hl7.org/fhir/sid/icd-9-cm"), code=Code(matched_row_6oop.operation),
-                       display=String("Patient referral"))])
+                       # display=String("Patient referral")
+                       )])
             procedure.category = CodeableConcept(coding=[
                 Coding(system=Uri("http://terminology.hl7.org/CodeSystem/procedure-category"),
                        code=Code("exam"),
@@ -255,7 +256,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                                                                           f"https://terms.sil-th.org/id/th-doctor-id"),
                                                                           value=String(
                                                                               matched_row_6oop.dropid))))]
-            procedure.id = procedure_id(main_hospital_code,matched_row_6oop.sequence, matched_row_6oop.operation )
+            procedure.id = procedure_id(main_hospital_code, matched_row_6oop.sequence, matched_row_6oop.operation)
             procedures.append(procedure)
         # Claim (11,12)
         if matched.row_11cht is not None:
@@ -332,7 +333,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                                                          currency=Code("THB")),
                                          net=Money(value=Decimal(matched_row_16dru.total),
                                                    currency=Code("THB")))]
-            drug_claim.id = claim_drug_id(main_hospital_code,matched_row_16dru.sequence, matched_row_16dru.drug_id24)
+            drug_claim.id = claim_drug_id(main_hospital_code, matched_row_16dru.sequence, matched_row_16dru.drug_id24)
             claims.append(drug_claim)
 
             # MedicationDispense
@@ -353,7 +354,8 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
             medication_dispense.quantity = Quantity(value=Decimal(matched_row_16dru.amount),
                                                     unit=String(matched_row_16dru.unit))
             medication_dispense.whenHandedOver = String(matched_row_16dru.service_date)
-            medication_dispense.id = medication_dispense_id(main_hospital_code, matched_row_16dru.sequence, matched_row_16dru.drug_id24)
+            medication_dispense.id = medication_dispense_id(main_hospital_code, matched_row_16dru.sequence,
+                                                            matched_row_16dru.drug_id24)
             medication_dispenses.append(medication_dispense)
 
             # MedicationRequest
@@ -386,7 +388,8 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
             medication_request.subject = Reference(reference=patient.relative_path())
             medication_request.encounter = Reference(reference=encounter.relative_path())
             medication_request.authoredOn = String(matched_row_16dru.service_date)
-            medication_request.id = medication_request_id(main_hospital_code, matched_row_16dru.sequence, matched_row_16dru.drug_id24)
+            medication_request.id = medication_request_id(main_hospital_code, matched_row_16dru.sequence,
+                                                          matched_row_16dru.drug_id24)
             medication_requests.append(medication_request)
 
 
@@ -506,12 +509,15 @@ def process_all(_1ins_path: PathLike, _2pat_path: PathLike, _3opd_path: PathLike
         medication_requests: list[MedicationRequest] = manager.list()
 
         with Pool() as pool:
-            for i in tqdm(pool.imap(partial(process_patient, organizations_dict, patients_dict), _2pat_rows, chunk_size), total=len(_2pat_rows), desc="Creating Patient Resource"):
+            for i in tqdm(
+                    pool.imap(partial(process_patient, organizations_dict, patients_dict), _2pat_rows, chunk_size),
+                    total=len(_2pat_rows), desc="Creating Patient Resource"):
                 pass
-            for i in tqdm(pool.imap(partial(process_matched_seq, organizations_dict, patients_dict, coverages,accounts,
-                             encounters, service_requests, conditions, procedures, claims, medication_dispenses,
-                             medication_requests),
-                     joined_opd_files.items(), chunk_size), total=len(joined_opd_files),
+            for i in tqdm(pool.imap(partial(process_matched_seq, organizations_dict, patients_dict, coverages, accounts,
+                                            encounters, service_requests, conditions, procedures, claims,
+                                            medication_dispenses,
+                                            medication_requests),
+                                    joined_opd_files.items(), chunk_size), total=len(joined_opd_files),
                           desc="Creating Other Resources"):
                 pass
             pool.close()

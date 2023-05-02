@@ -20,7 +20,7 @@ def service_request_id(hospital_code, sequence)->Id:
     return Id(f"hcode-{hospital_code}-vn-{sequence}")
 
 def condition_id(hospital_code, sequence, icd10)->Id:
-    return Id(f"hcode-{hospital_code}-vn-{sequence}-code-idx-{icd10}")
+    return Id(f"hcode-{hospital_code}-vn-{sequence}-code-odx-{icd10}")
 
 def procedure_id(hospital_code, sequence, icd9)->Id:
     return Id(f"hcode-{hospital_code}-vn-{sequence}-code-{icd9}")
