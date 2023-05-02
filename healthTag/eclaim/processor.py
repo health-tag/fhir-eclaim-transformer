@@ -6,6 +6,7 @@ from os import PathLike
 from pathlib import Path
 
 import pandas as pd
+import pytz
 from fhir.resources import FHIRAbstractModel
 
 from configurations.fhir import use_pydactic_validation
@@ -51,6 +52,16 @@ from healthTag.eclaim.files.E_16DruCsv import open_dru_file, DruCsvRow
 from typing import Optional
 from collections.abc import Iterable
 from utilities.fhir_communicator import create_bundle
+
+from datetime import datetime, timezone, timedelta
+tz = timezone(timedelta(hours=7), name="Asia/Bangkok")
+
+
+def to_datetime_with_thai_timezone(date: str, time: str = None):
+    if time is None:
+        return datetime.strptime(date, "%Y%m%d").replace(tzinfo=tz)
+    else:
+        return datetime.strptime(f"{date} {time}", "%Y%m%d %H%M").replace(tzinfo=tz)
 
 
 def save_bundle_to_file(bundle: Bundle, output_folder: PathLike, file_name: str):
@@ -119,7 +130,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                    code=Code(matched.row_1ins.insurance_type))])
         coverage.beneficiary = Reference(reference=patient.relative_path())
         if isinstance(matched.row_1ins.insurance_expired_date, str):
-            coverage.period = Period(end=matched.row_1ins.insurance_expired_date)
+            coverage.period = Period(end=to_datetime_with_thai_timezone(matched.row_1ins.insurance_expired_date))
         if matched_org is not None:
             coverage.payor = [Reference(reference=matched_org.relative_path())]
         coverage.class_fhir = [CoverageClass(type=CodeableConcept(coding=[
@@ -152,7 +163,8 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                 f"https://terms.sil-th.org/hcode/5/{matched.row_1ins.main_hospital_code}/VN"),
             value=String(matched.row_3opd.sequence))]
         account.subject = [Reference(reference=patient.relative_path())]
-        account.servicePeriod = Period(start=matched.row_3opd.dateopd + matched.row_3opd.timeopd)
+        account.servicePeriod = Period(
+            start=to_datetime_with_thai_timezone(matched.row_3opd.dateopd, matched.row_3opd.timeopd))
         account.extension = [
             Extension(url=Uri("https://fhir-ig.sil-th.org/mophpc/StructureDefinition/ex-account-coverage-use"),
                       valueCodeableConcept=CodeableConcept(coding=[
@@ -173,7 +185,8 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
         encounter.class_fhir = Coding(system=Uri("http://terminology.hl7.org/CodeSystem/v3-ActCode"),
                                       code=Code("AMB"), display=String("ambulatory"))
         encounter.subject = Reference(reference=patient.relative_path())
-        encounter.period = Period(start=matched.row_3opd.dateopd + matched.row_3opd.timeopd)
+        encounter.period = Period(
+            start=to_datetime_with_thai_timezone(matched.row_3opd.dateopd, matched.row_3opd.timeopd))
         if matched_org is not None:
             if isinstance(matched.row_1ins.htype, str):
                 encounter.serviceProvider = Reference(reference=matched_org.relative_path(),
@@ -250,7 +263,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                        display=String("Exam"))])
             procedure.subject = Reference(reference=patient.relative_path())
             procedure.encounter = Reference(reference=encounter.relative_path())
-            procedure.performedDateTime = matched_row_6oop.dateopd
+            procedure.performedDateTime = to_datetime_with_thai_timezone(matched_row_6oop.dateopd)
             procedure.performer = [ProcedurePerformer(actor=Reference(type=Uri("Practitioner"),
                                                                       identifier=Identifier(system=Uri(
                                                                           f"https://terms.sil-th.org/id/th-doctor-id"),
@@ -261,7 +274,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
         # Claim (11,12)
         if matched.row_11cht is not None:
             claim = Claim.construct(status=Code("active"), use=Code("claim"),
-                                    created=String(matched.row_11cht.date))
+                                    created=to_datetime_with_thai_timezone(matched.row_11cht.date))
             claim.extension = [
                 Extension(url=Uri("https://fhir-ig.sil-th.org/mophpc/StructureDefinition/ex-claim-total-cost"),
                           valueMoney=Money(value=Decimal(100), currency=Code("THB"))),
@@ -295,7 +308,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                         Coding(system=Uri("https://terms.sil-th.org/CodeSystem/cs-eclaim-charge-item"),
                                code=Code(matched_row_12cha.chrgitem),
                                display=String("ค่าบริการทางการพยาบาล (เบิกได้)"))])
-                    claimItem.servicedDate = matched_row_12cha.date
+                    claimItem.servicedDate = to_datetime_with_thai_timezone(matched_row_12cha.date)
                     claimItem.encounter = [Reference(reference=encounter.relative_path())]
                     claimItem.net = Money(value=Decimal(matched_row_12cha.amount), currency=Code("THB"))
                     claim.item.append(claimItem)
@@ -304,7 +317,8 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
 
         for matched_row_16dru in matched.row_16dru:
             # Claim (16)
-            drug_claim = Claim.construct(created=String(matched_row_16dru.service_date), use=Code("claim"),
+            drug_claim = Claim.construct(created=to_datetime_with_thai_timezone(matched_row_16dru.service_date),
+                                         use=Code("claim"),
                                          status=Code("active"))
             drug_claim.type = CodeableConcept(coding=[
                 Coding(system=Uri("https://terms.sil-th.org/CodeSystem/cs-th-identifier-type"),
@@ -327,7 +341,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                        code=Code(matched_row_16dru.drug_id24))], text=String(matched_row_16dru.drug_name)),
                                          quantity=Quantity(value=Decimal(matched_row_16dru.amount),
                                                            unit=String(matched_row_16dru.unit)),
-                                         servicedDate=String(matched_row_16dru.service_date),
+                                         servicedDate=to_datetime_with_thai_timezone(matched_row_16dru.service_date),
                                          encounter=[Reference(reference=encounter.relative_path())],
                                          unitPrice=Money(value=Decimal(matched_row_16dru.drug_price),
                                                          currency=Code("THB")),
@@ -353,7 +367,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
             # medication_dispense.performer = [MedicationDispensePerformerType(function=CodeableConcept(coding=[Coding(system=Uri("http://terminology.hl7.org/CodeSystem/medicationdispense-performer-function"), code=Code("finalchecker"))], actor=Reference(type=String("Practitioner"), identifier=Identifier(system=String("https://terms.sil-th.org/id/th-pharmacist-id"),value=String(matched.row_16dru.provider)))))]
             medication_dispense.quantity = Quantity(value=Decimal(matched_row_16dru.amount),
                                                     unit=String(matched_row_16dru.unit))
-            medication_dispense.whenHandedOver = String(matched_row_16dru.service_date)
+            medication_dispense.whenHandedOver = to_datetime_with_thai_timezone(matched_row_16dru.service_date)
             medication_dispense.id = medication_dispense_id(main_hospital_code, matched_row_16dru.sequence,
                                                             matched_row_16dru.drug_id24)
             medication_dispenses.append(medication_dispense)
@@ -387,7 +401,7 @@ def process_matched_seq(organizations_dict: dict[str, Organization], patients_di
                        code=Code(matched_row_16dru.use_status), display=String("ใช้ในโรงพยาบาล"))])]
             medication_request.subject = Reference(reference=patient.relative_path())
             medication_request.encounter = Reference(reference=encounter.relative_path())
-            medication_request.authoredOn = String(matched_row_16dru.service_date)
+            medication_request.authoredOn = to_datetime_with_thai_timezone(matched_row_16dru.service_date)
             medication_request.id = medication_request_id(main_hospital_code, matched_row_16dru.sequence,
                                                           matched_row_16dru.drug_id24)
             medication_requests.append(medication_request)
