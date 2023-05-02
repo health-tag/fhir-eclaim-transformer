@@ -82,7 +82,7 @@ def process_patient(organizations_dict: dict[str, Organization], patients_dict: 
     ]
     patient.name = [HumanName(prefix=[String(row.title)], given=[String(row.name)], family=String(row.surname),
                               text=String(f"{row.title} {row.name} {row.surname}"))]
-    patient.gender = Code("male" if row.gender_number == 1 else "female")
+    patient.gender = Code("male" if row.gender_number == "1" else ("female" if row.gender_number == "2" else "unknown"))
     matched_org = organizations_dict[row.hospital_code]
     patient.managingOrganization = Reference(reference=matched_org.relative_path())
     patient.id = patient_id(row.citizen_id)
