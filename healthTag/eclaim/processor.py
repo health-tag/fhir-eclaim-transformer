@@ -77,7 +77,7 @@ def process_patient(organizations_dict: dict[str, Organization], patients_dict: 
     patient: Patient = Patient.construct()
     patient.identifier = [
         Identifier(system=Uri("https://www.dopa.go.th"), value=f"{row.citizen_id}"),
-        Identifier(system=Uri("https://terms.sil-th.org/id/th-cid"), value=f"{row.hospital_number}"),
+        Identifier(system=Uri("https://terms.sil-th.org/id/th-cid"), value=f"{row.citizen_id}"),
         Identifier(system=Uri("https://sil-th.org/fhir/Id/hn"), value=f"{row.hospital_number}"),
     ]
     patient.name = [HumanName(prefix=[String(row.title)], given=[String(row.name)], family=String(row.surname),
